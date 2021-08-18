@@ -2,44 +2,39 @@ package robotname
 
 import (
 	"errors"
-	"github.com/zach-klippenstein/goregen"
-	//"fmt"
+	"fmt"
 	"math/rand"
 )
 
-var uppercaseLetters = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+const (
+	letterLength 	= 26
+	numberLimit 	= 1000
+	poolSize 		= 676000
+)
+var poolNames = generatePoolName()
 
-func randomString(strSize int) string {
-	result := make([]rune, strSize)
-	for i := range result {
-		result[i] = uppercaseLetters[rand.Intn(len(uppercaseLetters))]
+func generatePoolName() []string {
+	a, b := 'A', 'A'
+	pool := make([]string, poolSize)
+	var counter int
+
+	for i := 0; i < letterLength; i ++ {
+		for j := 0; j < letterLength; j ++ {
+			for k := 0; k < numberLimit; k ++ {
+				pool[counter] = string(a+int32(i)) + string(b+int32(j)) + fmt.Sprintf("%03d", k)
+				counter ++
+			}
+		}
 	}
+	rand.Shuffle(poolSize, func(i, j int) {
+		pool[i], pool[j] = pool[j], pool[i]
+	})
 
-	return string(result)
+	return pool
 }
 
 type Robot struct {
 	name string
-}
-
-var robots = map[string]int{}
-func generateRobotName() (string, error) {
-	var tmpName string
-	const maxNames = 676000
-
-	if len(robots) == maxNames {
-		return "", errors.New("new name is not available")
-	}
-
-	for {
-		tmpName, _ = regen.Generate("[A-Z]{2}[0-9]{3}")
-		if _, ok := robots[tmpName]; !ok {
-			robots[tmpName] = 0
-			break
-		}
-	}
-
-	return tmpName, nil
 }
 
 func (r *Robot) Reset() {
@@ -48,12 +43,12 @@ func (r *Robot) Reset() {
 
 func (r *Robot) Name() (string, error) {
 	if r.name == "" {
-		name, err := generateRobotName()
-		if err != nil {
-			return "", err
+		if len(poolNames) == 0 {
+			return "", errors.New("new name is not available")
 		}
 
-		r.name = name
+		r.name = poolNames[0]
+		poolNames = poolNames[1:]
 	}
 
 	return r.name, nil
